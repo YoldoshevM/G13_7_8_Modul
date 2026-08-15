@@ -1,3 +1,4 @@
+
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -40,7 +41,11 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen(options =>
         {
-            options.SwaggerDoc("v1", new OpenApiInfo { Title = "ToDoList API", Version = "v1" });
+            options.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Title = "ToDoList API",
+                Version = "v1"
+            });
 
             var securityScheme = new OpenApiSecurityScheme
             {
@@ -66,19 +71,16 @@ public class Program
 
         // ---- CORS ----
         const string corsPolicy = "DefaultCorsPolicy";
-        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+
         builder.Services.AddCors(options =>
         {
             options.AddPolicy(corsPolicy, policy =>
             {
-                if (allowedOrigins is { Length: > 0 })
-                {
-                    policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
-                }
-                else
-                {
-                    policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
-                }
+                policy
+                    .WithOrigins("http://2.28.62.244:5001")
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials();
             });
         });
 
@@ -133,17 +135,9 @@ public class Program
 
         app.MapControllers();
 
-        // ============================================================================
+        // ========================================================================
         // ONE-TIME SAMPLE DATA SEEDING
-        // ----------------------------------------------------------------------------
-        // Make sure the database schema exists first (run once in a terminal):
-        //     dotnet ef database update --project src/ToDoList.Persistence \
-        //         --startup-project src/ToDoList.Api
-        //
-        // Run the app ONCE with the line below enabled to insert 10 users and
-        // 30 to-do items, then COMMENT OUT the line to avoid re-adding the data.
-        // (It is also self-guarding: it skips seeding if users already exist.)
-        // ============================================================================
+        // ========================================================================
         //await app.SeedSampleDataAsync();
 
         await app.RunAsync();
