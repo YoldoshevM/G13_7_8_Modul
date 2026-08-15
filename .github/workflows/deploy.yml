@@ -6,14 +6,43 @@ on:
       - main
 
 jobs:
-  deploy:
+  build-and-push:
+    name: Build and Push Docker Images
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy to server
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push API
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ToDoList
+          file: ./ToDoList/src/ToDoList.Api/Dockerfile
+          push: true
+          tags: yoldoshev77/todolist-api:latest
+
+      - name: Build and Push Blazor
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ToDoList
+          file: ./ToDoList/src/ToDoList.BlazorUI/Dockerfile
+          push: true
+          tags: yoldoshev77/todolist-blazor:latest
+
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Deploy
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -21,5 +50,15 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd /root/todolist
-            echo "Connected to server"
+
+            echo "Pulling latest images..."
+            docker compose pull
+
+            echo "Starting containers..."
+            docker compose up -d
+
+            echo "Cleaning old images..."
+            docker image prune -f
+
+            echo "Checking containers..."
             docker compose ps
